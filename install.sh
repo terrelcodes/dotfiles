@@ -2,19 +2,11 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-# 1) Where am I? (the directory containing this script)
+# 1) Where am I?
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-repo_root="$(cd "$script_dir" && pwd -P)"  # adjust if your script is deeper
+repo_root="$script_dir"   # if this script lives in dotfiles/, adjust if deeper
 
-# 2) Map source → multiple destinations
-#    profile.sh → .zprofile & .bash_profile
-#    shrc.sh    → .zshrc    & .bashrc
-#    zshenv.zsh → .zshenv    (no bash)
-declare -A targets=(
-  ["$repo_root/profile.sh"]=".zprofile .bash_profile"
-  ["$repo_root/shrc.sh"   ]=".zshrc .bashrc"
-  ["$repo_root/zsh/zshenv.zsh"]=".zshenv"
-)
+# 2) What to back up?
 backup_files=(
   .bash_login
   .bash_profile
@@ -24,11 +16,11 @@ backup_files=(
   .zshenv
 )
 
-# 1) create the dir now…
+# 3) Prepare backup dir (we’ll delete it later if it’s empty)
 backup_dir="$HOME/.dotfiles_backup/$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$backup_dir"
 
-# 2) move any existing dotfiles in
+# 4) Move any existing dotfiles into backup
 for file in "${backup_files[@]}"; do
   src="$HOME/$file"
   if [ -e "$src" ] || [ -L "$src" ]; then
@@ -37,28 +29,35 @@ for file in "${backup_files[@]}"; do
   fi
 done
 
-# 3) if it’s empty, remove it; otherwise list its contents
+# 5) If backup dir is empty, nuke it
 if [ -z "$(ls -A "$backup_dir")" ]; then
   rmdir "$backup_dir"
-  echo "No dotfiles to back up; removed empty $backup_dir"
+  echo "No dotfiles found; removed empty $backup_dir"
 else
   echo
-  echo "Backed up dotfiles into: $backup_dir"
+  echo "Backed up your old dotfiles in: $backup_dir"
 fi
 
-# 4) Symlink loop
-for src in "${!targets[@]}"; do
-  for dest_basename in ${targets[$src]}; do
-    dest="$HOME/$dest_basename
+# 6) Prepare the *parallel* source/dest‐lists
+sources=(
+  "$repo_root/profile.sh"
+  "$repo_root/shrc.sh"
+  "$repo_root/zsh/zshenv.zsh"
+)
 
-    # ensure parent dir exists (usually $HOME)
+dest_lists=(
+  ".zprofile .bash_profile"
+  ".zshrc   .bashrc"
+  ".zshenv"
+)
+
+# 7) Symlink them
+for i in "${!sources[@]}"; do
+  src="${sources[i]}"
+  for dest_basename in ${dest_lists[i]}; do
+    dest="$HOME/$dest_basename"
     mkdir -p "$(dirname "$dest")"
-
-    # create or replace symlink
     ln -sfn "$src" "$dest"
     echo "✔ Linked $dest → $src"
   done
 done
-
-echo
-echo "Backup of replaced files is in: $backup_dir"
