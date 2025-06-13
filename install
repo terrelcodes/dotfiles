@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+import os
+from pathlib import Path
+from datetime import datetime
+target_files = (
+        ".bash_login",
+        ".bash_profile",
+        ".bashrc",
+        ".profile",
+        ".zshrc",
+        ".zshenv",
+    )
+package_files = (
+        ("profile.sh", (".zprofile", ".bash_profile")),
+        ("shrc.sh", (".zshrc", ".bashrc")),
+        ("zshenv.zsh", (".zshenv",)),
+    )
+
+def backup_files(source_dir, backup_dir, backup_files):
+   for file in backup_files:
+        src = Path(f"{source_dir}/{file}")
+        if src.exists():
+          dest = backup_dir / file
+          os.makedirs(dest.parent, exist_ok=True)
+          print(f"Backing up {src} → {dest} (in {backup_dir})")
+          src.rename(dest)#this will leave a broken symlink
+
+def install(source_dir, target_dir, package):
+    for file, links in package:
+        for link in links:
+            a = target_dir / link
+            b = source_dir / file
+            dest_dir = a.parent
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            r = os.path.relpath(b,dest_dir)
+            print( f"link {r} {a} ({b})")
+            try:
+                os.symlink(r,a)
+            except FileExistsError:
+                os.unlink(a)
+                os.symlink(r,a)
+
+def lazy_mkdir(path):
+    make = not path.exists()
+    def mk():
+        nonlocal make
+        if make: 
+          path.mkdir(parents=True, exist_ok=True)
+          make = False
+        return path
+    return mk
+
+def main(target_dir=None):
+    print(f"Installing dotfiles to {target_dir}")
+    repo_root = Path(__file__).parent
+
+    target_dir = Path(target_dir) or Path(os.environ["HOME"])
+    
+    backup_dir = target_dir/f"dotfiles-backup-{datetime.now().strftime('%Y%m%dT%H%M%S')}"  
+    backup_dir.mkdir(parents=True, exist_ok=False)
+    backup_files(target_dir, backup_dir, target_files)
+    if len(os.listdir(backup_dir)) == 0:
+        backup_dir.rmdir()
+
+    install(repo_root, target_dir, package_files)
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description='Install dotfiles')
+    parser.add_argument('target_dir', help='Target directory for installation (default: $HOME)', default=os.environ["HOME"])
+    args = parser.parse_args()
+    main(args.target_dir)
