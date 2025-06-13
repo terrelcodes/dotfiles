@@ -18,21 +18,24 @@ else
 fi
 
 # add local bin to PATH
-if [ -d "$HOME/.local/bin" ]; then
+LOCAL_BIN="$HOME/.local/bin"
+if [ -d "$LOCAL_BIN" ]; then
   case ":$PATH:" in
-    *":$HOME/.local/bin:"*) ;;           # already in PATH
-    *) PATH="$HOME/.local/bin:$PATH" ;;  # prepend
+    *":$LOCAL_BIN:"*) ;;           # already in PATH
+    *) PATH="$LOCAL_BIN:$PATH" ;;  # prepend
   esac
   export PATH
 fi
+export LOCAL_BIN
+export PROJECTS="$HOME/projects"  
+export GOBIN="$LOCAL_BIN"
+export DOTFILES="$HOME/dotfiles"
 
 # set nvim as default editor
 if command -v nvim >/dev/null 2>&1; then
   export EDITOR=nvim
   export VISUAL=nvim
 fi
-
-export DOTFILES="$HOME/dotfiles"
 
 echo "👋 profile loaded"
 if [[ $- == *i* ]]; then
