@@ -1,0 +1,13 @@
+[user]
+	name = Terrel Shumway
+	email = gh@t11y.dev
+[alias]
+	st = status
+	co = checkout
+	ci = commit
+	br = branch
+
+[init]
+	defaultBranch = main
+[gpg]
+	format = ssh

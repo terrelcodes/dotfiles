@@ -9,11 +9,13 @@ target_files = (
         ".profile",
         ".zshrc",
         ".zshenv",
+        ".gitconfig",
     )
 package_files = (
         ("profile.sh", (".zprofile", ".bash_profile")),
         ("shrc.sh", (".zshrc", ".bashrc")),
         ("zshenv.zsh", (".zshenv",)),
+        ("gitconfig", (".gitconfig",)),
     )
 
 def backup_files(source_dir, backup_dir, backup_files):
